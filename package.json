@@ -1,0 +1,31 @@
+{
+  "name": "getsource",
+  "version": "1.0.0",
+  "author": {
+    "name": "Benjamin Zachariae",
+    "url": "https://github.com/arcuo"
+  },
+  "license": "MIT",
+  "module": "index.ts",
+  "exports": {
+    "require": "./dist/index.js",
+    "import": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@swc/wasm": "^1.10.12",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@swc/core": "^1.10.12"
+  },
+  "scripts": {
+    "test": "bun run index.test.ts",
+    "clean": "rm -rf dist",
+    "build": "bun run clean && bun build index.ts --target node --outdir dist"
+  }
+}
