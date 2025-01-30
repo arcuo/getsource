@@ -10,8 +10,14 @@
   "exports": {
     "require": "./dist/index.js",
     "import": "./dist/index.js",
-    "types": "./dist/index.d.ts"
+    "types": "./dist/index.d.ts",
+    "swc": {
+      "require": "./dist/index.swc.js",
+      "import": "./dist/index.swc.js",
+      "types": "./dist/index.swc.d.ts"
+    }
   },
+  "sideEffects": false,
   "type": "module",
   "devDependencies": {
     "@swc/wasm": "^1.10.12",
@@ -26,6 +32,9 @@
   "scripts": {
     "test": "bun run index.test.ts",
     "clean": "rm -rf dist",
-    "build": "bun run clean && bun build index.ts --target node --outdir dist"
+    "build:ts": "bun build index.ts --target node --outdir dist",
+    "build:swc": "bun build index.swc.ts --target node --outdir dist",
+    "build:types": "tsc --outDir dist",
+    "build": "bun run clean && bun run build:ts && bun run build:swc && bun run build:types"
   }
 }

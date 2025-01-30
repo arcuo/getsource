@@ -1,67 +1,51 @@
-import { parseSync, printSync, type FunctionDeclaration } from "@swc/core";
+import {
+  createSourceFile,
+  ScriptTarget,
+  SyntaxKind,
+  type FunctionDeclaration,
+  type Node,
+} from "typescript";
 import { readFileSync } from "fs";
-
-function getCurrentFileFromStack() {
-  const stack = new Error().stack;
-  const lines = stack?.split("\n");
-  const fileLine = lines?.at(-1);
-  const file = fileLine?.match(/\((.*):\d+:\d+\)$/)?.[1];
-  return file;
-}
+import { getCurrentFileFromStack } from "./shared";
 
 /**
  * Get the source code of a function as a string
  * @param fn function or name of the function
  * @param parseOpts options to the swc parser
  */
-export function getSourceSync(
-  fn: string | Function,
-  parseOpts?: Partial<Parameters<typeof parseSync>[1]>
-) {
+export function getSourceSync(fn: string | Function) {
   const functionName = fn instanceof Function ? fn.name : fn;
-  const file = getCurrentFileFromStack();
+  const filePath = getCurrentFileFromStack();
 
-  if (!file) throw new Error("Could not get current file");
+  if (!filePath) throw new Error("Could not get current file");
 
-  const source = readFileSync(file, "utf-8");
-  const ast = parseSync(source, {
-    syntax: "typescript",
-    tsx: true,
-    ...parseOpts,
+  const code = readFileSync(filePath, "utf-8");
+  const ast = createSourceFile(filePath, code, {
+    languageVersion: ScriptTarget.Latest,
   });
 
   function findFunctionNodeTraverse(
-    node: any
+    node: Node
   ): FunctionDeclaration | undefined {
-    if (!node || typeof node !== "object") return;
-
-    if (
-      node.type === "FunctionDeclaration" &&
-      node.identifier?.value === functionName
-    ) {
-      return node;
+    if (node.kind === SyntaxKind.FunctionDeclaration) {
+      const functionNode = node as FunctionDeclaration;
+      if (functionNode.name?.getText(ast) === functionName) {
+        return functionNode;
+      }
     }
 
-    for (const key in node) {
-      if (node[key] && typeof node[key] === "object") {
-        const result = findFunctionNodeTraverse(node[key]);
-        if (result) return result;
-      }
+    for (let child of node.getChildren(ast)) {
+      const result = findFunctionNodeTraverse(child);
+      if (result) return result;
     }
   }
 
-  let functionNode = findFunctionNodeTraverse(ast.body);
+  const functionNode = findFunctionNodeTraverse(ast);
   if (!functionNode) return;
 
-  const functionCode = printSync({ ...ast, body: [functionNode] }).code;
-  const functionBodyCode = printSync({
-    ...ast,
-    body: [...functionNode.body!.stmts],
-  }).code;
-
+  const functionCode = functionNode.getText(ast);
   return {
     functionName,
     functionCode,
-    functionBodyCode,
   };
 }
